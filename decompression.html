@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>解压工作室 | 月球重力</title>
+    
+    <!-- ==================== CSS：工作室的皮肤 ==================== -->
+    <style>
+        /* 全局设置，深邃宇宙蓝 */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0f0c29; /* 更深邃的夜空色 */
+            background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e); /* 渐变色背景 */
+            color: white;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            overflow: hidden; /* 防止屏幕滚动 */
+            user-select: none; /* 防止双击选中文字，提升点击手感 */
+        }
+
+        /* 顶部控制台样式 */
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px); /* 毛玻璃特效 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            width: 85%;
+            max-width: 400px;
+        }
+
+        .title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: #a0a0a0;
+            margin-bottom: 15px;
+        }
+
+        /* 按钮样式 */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        button:active {
+            transform: scale(0.92); /* 按下时缩小，形成按压感 */
+        }
+
+        #spawnBtn {
+            background: linear-gradient(135deg, #00b09b, #96c93d); /* 绿色渐变，代表生成 */
+        }
+
+        #clearBtn {
+            background: linear-gradient(135deg, #ff416c, #ff4b2b); /* 红色渐变，代表清空 */
+        }
+
+        /* 物理世界容器，铺满全屏 */
+        #world {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 生成的零件（方块） */
+        .part {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 5px; 
+            box-shadow: 0 0 12px rgba(255, 255, 255, 0.4); /* 发光特效 */
+            pointer-events: none; /* 让方块不阻挡鼠标点击按钮 */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== HTML：工作室的骨架 ==================== -->
+    <div class="controls">
+        <div class="title">🧘‍♂️ 解压工作室</div>
+        <div class="subtitle">点击生成，让烦恼像这些方块一样坠落吧</div>
+        <div class="btn-group">
+            <button id="spawnBtn">生成 50 个零件</button>
+            <button id="clearBtn">清空压力</button>
+        </div>
+    </div>
+
+    <div id="world"></div>
+
+    <!-- ==================== JS：工作室的灵魂 ==================== -->
+    <script>
+        // 获取页面元素
+        const world = document.getElementById('world');
+        const spawnBtn = document.getElementById('spawnBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // 全局变量
+        let parts = []; 
+        // 你可以把 0.15 改成 0.8 试试地球重力，或者改成 0.05 试试太空重力
+        const GRAVITY = 0.15; 
+        // 增加了更多绚丽、解压的颜色（类似你测试的 17700 个零件）
+        const colors = [
+            '#ff9f43', '#0abde3', '#10ac84', '#ee5253', 
+            '#5f27cd', '#ffffff', '#f368e0', '#00d2d3', 
+            '#feca57', '#ff6b6b', '#48dbfb', '#1dd1a1'
+        ];
+
+        // 生成零件的函数
+        function spawnParts(count) {
+            for (let i = 0; i < count; i++) {
+                // 1. 创建方块元素
+                const partEl = document.createElement('div');
+                partEl.className = 'part';
+                
+                // 2. 随机颜色和随机位置
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                partEl.style.backgroundColor = color;
+                
+                // 稍微随机一点大小，让画面更有层次感
+                const size = 15 + Math.random() * 20; 
+                partEl.style.width = size + 'px';
+                partEl.style.height = size + 'px';
+
+                const x = Math.random() * (window.innerWidth - size);
+                const y = -50; // 从屏幕正上方外掉落
+                partEl.style.left = x + 'px';
+                partEl.style.top = y + 'px';
+                
+                world.appendChild(partEl);
+
+                // 3. 保存物理数据
+                parts.push({
+                    element: partEl,
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 6, // 更大的左右飘动幅度
+                    vy: Math.random() * 3          // 随机初始下落速度
+                });
+            }
+        }
+
+        // 核心物理引擎循环
+        function updatePhysics() {
+            for (let i = parts.length - 1; i >= 0; i--) {
+                let p = parts[i];
+                
+                // 应用重力和速度
+                p.vy += GRAVITY; 
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // 更新屏幕位置
+                p.element.style.left = p.x + 'px';
+                p.element.style.top = p.y + 'px';
+
+                // 掉出屏幕就清理掉，防止 iPad 内存爆炸
+                if (p.y > window.innerHeight) {
+                    p.element.remove(); 
+                    parts.splice(i, 1); 
+                }
+            }
+            
+            // 持续循环执行
+            requestAnimationFrame(updatePhysics);
+        }
+
+        // 按钮交互
+        spawnBtn.addEventListener('click', () => {
+            spawnParts(50); 
+        });
+
+        clearBtn.addEventListener('click', () => {
+            parts.forEach(p => p.element.remove());
+            parts = [];
+        });
+
+        // 启动引擎！
+        updatePhysics();
+    </script>
+</body>
+</html>
